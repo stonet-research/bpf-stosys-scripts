@@ -1,0 +1,13 @@
+/*
+ *
+ * Get the call stack from nvme_setup_cmd
+ *
+ *
+ */
+
+kprobe:nvme_setup_cmd {
+// For tracing a particular device use
+// kprobe:nvme_setup_cmd / ((struct request *)arg1)->q->disk->disk_name == "nvme0n2" / {
+
+    @[kstack] = count(); 
+}

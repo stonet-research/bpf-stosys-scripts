@@ -1,0 +1,10 @@
+/*
+ *
+ * Get the call stack from __blk_account_io_start
+ *
+ *
+ */
+
+kprobe:__blk_account_io_start { 
+    @[kstack] = count();
+}
