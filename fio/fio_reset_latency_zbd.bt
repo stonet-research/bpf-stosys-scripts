@@ -14,7 +14,7 @@ uprobe:/usr/local/bin/fio:blkzoned_reset_wp
 
 
 uretprobe:/usr/local/bin/fio:blkzoned_reset_wp 
-/@start[tid]/ 
+/ @start[tid] / 
 {
     $cmdtime = @start[tid] < nsecs ? (nsecs - @start[tid])/1000 : 0;
 

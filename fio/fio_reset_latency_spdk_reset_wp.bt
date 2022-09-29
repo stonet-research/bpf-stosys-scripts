@@ -1,0 +1,37 @@
+/*
+*
+* Get latency of a fio SPDK reset call issued with the SPDK fio interface
+* This script is a hack, be careful. This script might call multiple resets.
+* You NEED to alter _PATH_ to the path of the `spdk/build/fio/spdk_nvme` module
+*
+*/
+
+BEGIN {
+    @logging = 0;
+}
+
+uprobe:_PATH_:spdk_fio_reset_wp 
+{
+    @start[tid] = nsecs;
+}
+
+
+uretprobe:_PATH_:spdk_fio_reset_wp 
+/ @start[tid] / 
+{
+    $cmdtime = @start[tid] < nsecs ? (nsecs - @start[tid])/1000 : 0;
+    if (@logging == 1) {
+        printf("Reset took %lu \n", $cmdtime);
+    }
+    
+    @hist_latency["R"]      = hist($cmdtime);
+    @max_latency["R"]       = max($cmdtime);
+    @average_latency["R"]   = avg($cmdtime);
+    @count_resets["R"]      = count();
+}
+
+END {
+    clear(@start);
+    clear(@logging);
+}
+  
