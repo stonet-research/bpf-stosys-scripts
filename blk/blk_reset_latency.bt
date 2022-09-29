@@ -1,0 +1,49 @@
+/*
+*
+* Get BIO latency of all reset calls.
+* Based heavily on https://github.com/indraneel-m/zoned_bpftrace/blob/main/latency_blk_zms.bt
+*
+*/
+
+#include <linux/nvme.h>
+#include <linux/blkdev.h>
+#include <linux/blk-mq.h>
+
+// TODO: REQ_OP_MASK does not work on all versions of BPFtrace, for now use 0xFF 
+// TODO: Investigate how to account for passthrough (REQ_OP_DRV_OUT and NVME_ZONE_RESET)
+
+kfunc:__blk_account_io_start
+{
+    $reqop = (args->rq->cmd_flags & 0xFF);
+    $secnum = args->rq->__sector;
+
+    if ($reqop == REQ_OP_ZONE_RESET) {
+        @start_secnum[$secnum] = nsecs;
+    }
+    // reset all zones
+    else if($reqop == REQ_OP_ZONE_RESET_ALL) {
+        @count_reset_alls = count();
+    }
+}
+
+kfunc:__blk_account_io_done 
+/ @start_secnum[args->req->__sector] !=0 /
+{
+    $secnum = args->req->__sector;
+    $reqop = (args->req->cmd_flags & 0xFF);
+
+    if ( $reqop == REQ_OP_ZONE_RESET) {
+        $start_secnum = @start[$secnum];
+        $cmdtime = $start ? (nsecs - $start)/1000 : 0;
+
+        @hist_latency["R"]      = hist($cmdtime);
+        @max_latency["R"]       = max($cmdtime);
+        @average_latency["R"]   = avg($cmdtime);
+        @count_resets["R"]      = count();
+  }
+}
+
+END {
+    clear(@start_secnum);
+    clear(@zms_str);
+}
