@@ -1,0 +1,54 @@
+/*
+*
+* Get NVMe latency of Zone resets issued with the SPDK fio interface
+* This script is a hack, be careful. PCU is the callback function when spdk_nvme_zns_reset_zone finishes in the fio plugin.
+* You NEED to alter _PATH_ to the path of the `spdk/build/fio/spdk_nvme` module
+*
+*/
+
+// TODO: this is a hack. Make it maintainable :).
+
+// BPFtrace does not recognise the spdk_nvme_qpair struct, so hardcode it partially...
+struct spdk_nvme_qpair {
+    struct spdk_nvme_qpair                  *ctrlr;
+    uint16_t                                id;
+    uint8_t                                 qprio;
+    uint8_t                                 state : 3;
+    uint8_t                                 async: 1;
+    // etc.
+}
+
+
+BEGIN {
+    @logging = 0;
+}
+
+// arg3 == reset all. Only count calls where we only reset 1 zone! (no reset all)
+uprobe:_PATH_:spdk_nvme_zns_reset_zone
+/ arg3 == 0 /
+{
+    @start[tid] = nsecs;
+    if (@logging == 1) {
+        printf("reset start id:%lu, state:%lu\n", args->qpair->id, args->qpair->state);
+    }
+}
+
+
+uprobe:_PATH_:pcu_cb 
+/ @start[tid] / 
+{
+    $cmdtime = @start[tid] < nsecs ? (nsecs - @start[tid])/1000 : 0;
+    if (@logging == 1) {
+        printf("Reset took %lu \n", $cmdtime);
+    }
+    
+    @hist_latency["R"]      = hist($cmdtime);
+    @max_latency["R"]       = max($cmdtime);
+    @average_latency["R"]   = avg($cmdtime);
+    @count_resets["R"]      = count();
+}
+
+END {
+    clear(@start);
+    clear(@logging);
+}
