@@ -1,0 +1,29 @@
+/*
+*
+* Get latency of Zone resets issued with the ZBD fio interface
+* You might need to alter the path to a different path (depending on the fio installation location)
+*
+*/
+
+// TODO: don't hardcode fio location
+
+uprobe:/usr/local/bin/fio:blkzoned_reset_wp 
+{
+    @start[tid] = nsecs;
+}
+
+
+uretprobe:/usr/local/bin/fio:blkzoned_reset_wp 
+/ @start[tid] / 
+{
+    $cmdtime = @start[tid] < nsecs ? (nsecs - @start[tid])/1000 : 0;
+
+    @hist_latency["R"]      = hist($cmdtime);
+    @max_latency["R"]       = max($cmdtime);
+    @average_latency["R"]   = avg($cmdtime);
+    @count_resets["R"]      = count();
+}
+
+END {
+    clear(@start);
+}
