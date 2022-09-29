@@ -8,7 +8,7 @@
  * command opcode having been used.
  *
  * Output format:
- * (disk_name, command opcode, latency in nsecs)
+ * @latency_map[command ID]: (disk_name, command opcode, latency in nsecs)
  */
 
 #include <linux/nvme.h>

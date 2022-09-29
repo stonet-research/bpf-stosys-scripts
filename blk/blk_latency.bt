@@ -1,0 +1,39 @@
+/*
+ *
+ * Get the latency for blk I/O calls.
+ * Starts a timer with a kprobe at __blk_account_io_start
+ * finishes timer when __blk_account_io_done is called.
+ *
+ * The resulting map tracks the device name and 
+ * command opcode having been used.
+ *
+ * Output format:
+ * @latency_map[sector number]: (disk_name, request operation, latency in nsecs)
+ */
+
+#include <linux/blkdev.h>
+#include <linux/blk-mq.h>
+
+kfunc:__blk_account_io_start {
+    $reqop = (args->rq->cmd_flags & REQ_OP_MASK);
+    $disk_name = args->rq->q->disk->disk_name;
+
+    // Use secnum to track latency
+    $secnum = args->rq->__sector;
+
+    @track_map[$secnum] = (nsecs, $disk_name, $reqop);
+}
+
+kfunc:__blk_account_io_done /@track_map[args->req->__sector].0 != 0/ {
+    $secnum = args->req->__sector;
+
+    $start_time = @track_map[$secnum].0;
+    $disk_name = @track_map[$secnum].1;
+    $reqop = @track_map[$secnum].2;
+
+    @latency_map[$secnum] = ($disk_name, $reqop, (nsecs - $start_time));
+}
+
+END {
+    clear(@track_map);
+}
