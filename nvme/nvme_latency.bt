@@ -25,7 +25,7 @@ k:nvme_setup_cmd {
    @track_map[$cmdid] = (nsecs, $disk_name, $opcode);
 }
 
-k:nvme_complete_rq {
+k:nvme_complete_rq / @track_map[((struct request *)arg0)->tag].0 != 0 / {
     $cmdid = ((struct request *)arg0)->tag;
     $start_time = @track_map[$cmdid].0;
     $disk_name = @track_map[$cmdid].1;
