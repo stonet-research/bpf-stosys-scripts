@@ -33,7 +33,7 @@ kfunc:__blk_account_io_done
     $reqop = (args->req->cmd_flags & 0xFF);
 
     if ( $reqop == REQ_OP_ZONE_RESET) {
-        $start_secnum = @start[$secnum];
+        $start = @start_secnum[$secnum];
         $cmdtime = $start ? (nsecs - $start)/1000 : 0;
 
         @hist_latency["R"]      = hist($cmdtime);
@@ -45,5 +45,4 @@ kfunc:__blk_account_io_done
 
 END {
     clear(@start_secnum);
-    clear(@zms_str);
 }
