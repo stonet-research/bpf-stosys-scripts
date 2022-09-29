@@ -1,0 +1,39 @@
+/*
+ *
+ * Get the latency for nvme calls.
+ * Starts a timer with a kprobe at nvme_setup_cmd
+ * finishes timer when nvme_complete_rq is called.
+ *
+ * The resulting map tracks the device name and 
+ * command opcode having been used.
+ *
+ * Output format:
+ * (disk_name, command opcode, latency in nsecs)
+ */
+
+#include <linux/nvme.h>
+#include <linux/blkdev.h>
+#include <linux/blk-mq.h>
+
+k:nvme_setup_cmd {
+   $cmdid = ((struct request *)arg1)->tag;
+   $disk_name = ((struct request *)arg1)->q->disk->disk_name;
+
+   $nvme_cmd = (struct nvme_command *)*(arg1+sizeof(struct request));
+   $opcode = (uint8)$nvme_cmd->rw.opcode;
+
+   @track_map[$cmdid] = (nsecs, $disk_name, $opcode);
+}
+
+k:nvme_complete_rq {
+    $cmdid = ((struct request *)arg0)->tag;
+    $start_time = @track_map[$cmdid].0;
+    $disk_name = @track_map[$cmdid].1;
+    $opcode = @track_map[$cmdid].2;
+
+    @latency_map[$cmdid] = ($disk_name, $opcode, (nsecs - $start_time));
+}
+
+END {
+    clear(@track_map);
+}
