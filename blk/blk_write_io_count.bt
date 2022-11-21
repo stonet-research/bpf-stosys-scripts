@@ -1,0 +1,30 @@
+/*
+ *
+ * Count the number of write I/O calls at block layer level.
+ *
+ * Arguments:
+ * device name - e.g. nvme0n2
+ *
+ * Output format:
+ * @writes: number of write I/Os
+ */
+
+#include <linux/blkdev.h>
+#include <linux/blk-mq.h>
+#include <linux/nvme.h>
+
+k:submit_bio / ((struct bio *)arg1)->bi_bdev->bd_disk->disk_name == str($1) / {
+    $cmd = (((struct bio *)arg1)->bi_opf & 0x99);
+
+    if($cmd == WRITE) {
+        @writes = count();
+    }
+}
+
+k:submit_bio_noacct / ((struct bio *)arg1)->bi_bdev->bd_disk->disk_name == str($1) / {
+    $cmd = (((struct bio *)arg1)->bi_opf & 0x99);
+
+    if($cmd == WRITE) {
+        @writes = count();
+    }
+}
