@@ -1,0 +1,11 @@
+/*
+ *
+ * Count the number of writeback calls on all inodes
+ *
+ * Output format:
+ * @writes: number of writeback calls
+ */
+
+k:__writeback_single_inode {
+    @writes = count();
+}
