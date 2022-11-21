@@ -19,8 +19,6 @@ k:nvme_setup_cmd / ((struct request *)arg1)->q->disk->disk_name == str($1) / {
     $cmd = (((struct request *)arg1)->cmd_flags & 0x99);
     // In case append with ZNS is used, count it as write
     if($cmd == REQ_OP_WRITE || $cmd == REQ_OP_ZONE_APPEND) {
-        $data_len = (((struct request *)arg1)->__data_len >> SECTOR_SHIFT);
-
         @writes = count();
     }
 }
