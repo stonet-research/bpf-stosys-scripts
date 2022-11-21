@@ -1,0 +1,25 @@
+/*
+ *
+ * Get the average write I/O size.
+ * 
+ * Arguments:
+ * device name - e.g. nvme0n2
+ *
+ * Output format:
+ * @size: average size of the write I/Os
+ */
+
+#include <linux/blkdev.h>
+#include <linux/blk-mq.h>
+#include <linux/nvme.h>
+
+#define SECTOR_SHIFT 9
+
+k:nvme_setup_cmd / ((struct request *)arg1)->q->disk->disk_name == str($1) / {
+    $cmd = (((struct request *)arg1)->cmd_flags & 0x99);
+    if($cmd == REQ_OP_WRITE || $cmd == REQ_OP_ZONE_APPEND) {
+        $data_len = (((struct request *)arg1)->__data_len >> SECTOR_SHIFT);
+
+        @size = avg($data_len);
+    }
+}
