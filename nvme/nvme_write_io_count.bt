@@ -1,0 +1,24 @@
+/*
+ *
+ * Count the number of write I/O calls.
+ *
+ * Arguments:
+ * device name - e.g. nvme0n2
+ *
+ * Output format:
+ * @writes: number of write I/Os
+ */
+
+#include <linux/blkdev.h>
+#include <linux/blk-mq.h>
+#include <linux/nvme.h>
+
+#define SECTOR_SHIFT 9
+
+k:nvme_setup_cmd / ((struct request *)arg1)->q->disk->disk_name == str($1) / {
+    $cmd = (((struct request *)arg1)->cmd_flags & 0x99);
+    // In case append with ZNS is used, count it as write
+    if($cmd == REQ_OP_WRITE || $cmd == REQ_OP_ZONE_APPEND) {
+        @writes = count();
+    }
+}
