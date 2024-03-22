@@ -20,7 +20,7 @@ kprobe:nvme_setup_cmd
 
     // If nvme device is in passthrough (e.g., qemu passthrough) Zone reset has flag REQ_OP_DRV_OUT
     // therefore include more checks on nvme_zone_mgnt_action
-    if($cmd == NVME_ZONE_FINISH || (($cmd == REQ_OP_DRV_OUT && $opcode == nvme_cmd_zone_mgmt_send) && $nvme_cmd->zms.zsa == NVME_ZONE_FINISH)) {
+    if($cmd == REQ_OP_ZONE_FINISH || (($cmd == REQ_OP_DRV_OUT && $opcode == nvme_cmd_zone_mgmt_send) && $nvme_cmd->zms.zsa == NVME_ZONE_FINISH)) {
         @z_finish_ctr_map["F"] = count();
         @start[arg1] = nsecs;
     }
@@ -34,7 +34,7 @@ kprobe:nvme_complete_batch_req
     $opcode = (uint8)$nvme_cmd->rw.opcode;
     $cmd = (((struct request *)arg0)->cmd_flags & 0xFF);
 
-    if($cmd == NVME_ZONE_FINISH || (($cmd == REQ_OP_DRV_OUT && $opcode == nvme_cmd_zone_mgmt_send) && $nvme_cmd->zms.zsa == NVME_ZONE_FINISH)) {
+    if($cmd == REQ_OP_ZONE_FINISH || (($cmd == REQ_OP_DRV_OUT && $opcode == nvme_cmd_zone_mgmt_send) && $nvme_cmd->zms.zsa == NVME_ZONE_FINISH)) {
         $cmdid = ((struct request *)arg0)->tag;
         $cmdtime = (nsecs - @start[arg0])/1000;
 
@@ -42,7 +42,7 @@ kprobe:nvme_complete_batch_req
         @hist_latency["F"]      = hist($cmdtime);
         @max_latency["F"]       = max($cmdtime);
         @average_latency["F"]   = avg($cmdtime);
-        @count_resets["F"]      = count();
+        @count_finish["F"]      = count();
     }
 }
 
@@ -54,7 +54,7 @@ kprobe:nvme_complete_rq
     $opcode = (uint8)$nvme_cmd->rw.opcode;
     $cmd = (((struct request *)arg0)->cmd_flags & 0xFF);
 
-    if($cmd == NVME_ZONE_FINISH || (($cmd == REQ_OP_DRV_OUT && $opcode == nvme_cmd_zone_mgmt_send) && $nvme_cmd->zms.zsa == NVME_ZONE_FINISH)) {
+    if($cmd == REQ_OP_ZONE_FINISH || (($cmd == REQ_OP_DRV_OUT && $opcode == nvme_cmd_zone_mgmt_send) && $nvme_cmd->zms.zsa == NVME_ZONE_FINISH)) {
         $cmdid = ((struct request *)arg0)->tag;
         $cmdtime = (nsecs - @start[arg0])/1000;
 
@@ -62,7 +62,7 @@ kprobe:nvme_complete_rq
         @hist_latency["F"]      = hist($cmdtime);
         @max_latency["F"]       = max($cmdtime);
         @average_latency["F"]   = avg($cmdtime);
-        @count_resets["F"]      = count();
+        @count_finish["F"]      = count();
     }
 }
 
