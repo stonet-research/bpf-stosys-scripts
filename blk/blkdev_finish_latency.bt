@@ -1,0 +1,41 @@
+/*
+*
+* Get NVMe latency of all reset calls.
+*
+*/
+
+#include <linux/nvme.h>
+#include <linux/blkdev.h>
+#include <linux/blk-mq.h>
+#include <linux/blkzoned.h>
+
+// TODO: REQ_OP_MASK does not work on all versions of BPFtrace, for now use 0xFF 
+
+kprobe: blkdev_zone_mgmt  
+{
+    $cmd = arg1;
+    // Please see BLKFINISH_ZONE for the code
+    if ($cmd  == REQ_OP_ZONE_FINISH) {
+	    @finish[tid] = nsecs;
+    }
+}
+
+kretprobe: blkdev_zone_mgmt
+/@finish[tid]/
+{
+    if (@finish[tid] > 0) {
+        $cmdtime = (nsecs - @finish[tid])/1000;
+        printf("Finish took %lu\n", $cmdtime);
+
+        @hist_latency["F"]      = hist($cmdtime);
+        @max_latency["F"]       = max($cmdtime);
+        @average_latency["F"]   = avg($cmdtime);
+        @count_finish["F"]      = count(); 
+    }
+    @finish[tid] = 0;
+}
+
+
+END {
+    clear(@finish);
+}
