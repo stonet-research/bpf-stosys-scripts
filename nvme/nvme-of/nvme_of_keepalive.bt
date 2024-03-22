@@ -1,0 +1,8 @@
+#include <linux/nvme.h>
+#include <linux/nvme-tcp.h>
+
+// If probe doess not exist, run `sudo modprobe nvmet`
+
+kprobe:nvmet_execute_keep_alive {
+    printf("nvme-of kato:%s\n", strftime("%d-%H:%M:%S:%f", nsecs));
+}

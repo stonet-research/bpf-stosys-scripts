@@ -1,0 +1,13 @@
+#include <linux/nvme.h>
+#include <linux/nvme-tcp.h>
+
+// If probe doess not exist, run `sudo modprobe nvmet-tcp`
+
+kprobe:nvmet_parse_admin_cmd {
+    $cmd = (uint8) ( ((struct nvme_command *)(*arg0))->common.opcode );
+    printf("nvme-of cmd %d at %s\n", $cmd, strftime("%d-%H:%M:%S:%f", nsecs));
+}
+
+kprobe:nvmet_tcp_try_recv_pdu {
+    printf("recv pdu %d at %s\n", 0, strftime("%d-%H:%M:%S:%f", nsecs));
+}
